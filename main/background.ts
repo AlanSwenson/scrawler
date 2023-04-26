@@ -32,8 +32,7 @@ app.on('window-all-closed', () => {
   app.quit();
 });
 
-ipcMain.on('ping-pong-sync', (event, arg) => {
-  console.log(`[ipcMain] "${arg}" received synchronously.`)
-  crawl(arg);
-  event.returnValue = `[ipcMain] "${arg}" received synchronously.`;
+ipcMain.on('start-crawl', async (event, arg) => {
+  await crawl(arg);
+  event.sender.send('start-crawl', `"${arg}" crawl completed`);
 });

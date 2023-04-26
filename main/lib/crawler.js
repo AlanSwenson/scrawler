@@ -63,8 +63,6 @@ export async function crawl(url, maxPages = 5) {
 
             await page.goto(nextURL)
             const pageHTML = await page.content()
-            console.log(typeof pageHTML)
-            // const pageHTML = await axios.get(nextURL, config);
             // adding the current webpage to the 
             // web pages already crawled 
             visitedURLs.push(nextURL);
