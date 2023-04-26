@@ -1,8 +1,12 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 export async function crawl(url, maxPages = 50) {
     // initialized with the first webpage to visit 
+    // test url is https://scrapeme.live/shop
     const paginationURLsToVisit = [url];
     const visitedURLs = [];
 
@@ -58,6 +62,10 @@ export async function crawl(url, maxPages = 50) {
     console.log([...productURLs]);
 
     // use productURLs for scraping purposes... 
+    await prisma.rootURL.createMany({
+        data: [...productURLs].map(url => ({ url }))
+    })
+
 }
 
 
