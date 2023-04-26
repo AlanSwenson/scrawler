@@ -1,6 +1,7 @@
-import { app } from 'electron';
+import { app, ipcMain } from 'electron';
 import serve from 'electron-serve';
 import { createWindow } from './helpers';
+import { crawl } from './lib/crawler'
 
 const isProd: boolean = process.env.NODE_ENV === 'production';
 
@@ -29,4 +30,10 @@ if (isProd) {
 
 app.on('window-all-closed', () => {
   app.quit();
+});
+
+ipcMain.on('ping-pong-sync', (event, arg) => {
+  console.log(`[ipcMain] "${arg}" received synchronously.`)
+  crawl(arg);
+  event.returnValue = `[ipcMain] "${arg}" received synchronously.`;
 });

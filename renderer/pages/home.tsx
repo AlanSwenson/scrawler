@@ -1,27 +1,38 @@
+import electron from 'electron';
 import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+const ipcRenderer = electron.ipcRenderer;
+import { crawl } from '../../main/lib/crawler';
+
+
 
 function Home() {
+  const [url, setUrl] = React.useState('');
+  console.log(url);
+
+
+  const onClickWithIpcSync = () => {
+    const message = ipcRenderer.sendSync('ping-pong-sync', url );
+  };
+
+  
   return (
     <React.Fragment>
       <Head>
         <title>Home - Nextron (with-typescript-tailwindcss)</title>
       </Head>
-      <div className='grid grid-col-1 text-2xl w-full text-center'>
-        <img className='ml-auto mr-auto' src='/images/logo.png' />
-        <span>⚡ Electron ⚡</span>
-        <span>+</span>
-        <span>Next.js</span>
-        <span>+</span>
-        <span>tailwindcss</span>
-        <span>=</span>
-        <span>💕 </span>
-      </div>
-      <div className='mt-1 w-full flex-wrap flex justify-center'>
-        <Link href='/next'>
-          <a className='btn-blue'>Go to next page</a>
-        </Link>
+      <div className=' w-full flex justify-center h-screen bg-gray-900'>
+        
+        <div className='flex flex-col justify-center items-center'>
+          <form >
+            <input className='border rounded px-2 py-1 mx-2 text-slate-500 ' type='text' placeholder='Enter URL' value={url} onChange={e => setUrl(e.target.value)} />
+            <button className='border rounded px-4 py-1 text-white bg-green-700' onClick={onClickWithIpcSync}>Crawl</button>
+            </form>
+        </div>
+        
+
+      
       </div>
     </React.Fragment>
   );
