@@ -1,6 +1,7 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 import { PrismaClient } from '@prisma/client'
+import { chromium } from 'playwright-core';
 
 const prisma = new PrismaClient()
 
@@ -24,9 +25,10 @@ function isShop($) {
     return shop;
 }
 
-export async function crawl(url, maxPages = 100) {
+export async function crawl(url, maxPages = 5) {
     // initialized with the first webpage to visit 
     // test url is https://scrapeme.live/shop
+    if (!url) url = 'https://scrapeme.live/shop';
     if (!url.startsWith('http') && !url.startsWith('https')) url = 'https://' + url;
     const URLsToVisit = [url];
     const visitedURLs = [];
@@ -37,6 +39,12 @@ export async function crawl(url, maxPages = 100) {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
         },
     };
+
+    const browser = await chromium.launch({
+        headless: true,
+    });
+    const page = await browser.newPage()
+
 
     // iterating until the queue is empty 
     // or the iteration limit is hit 
@@ -52,13 +60,17 @@ export async function crawl(url, maxPages = 100) {
 
         // retrieving the HTML content from nextURL 
         try {
-            const pageHTML = await axios.get(nextURL, config);
+
+            await page.goto(nextURL)
+            const pageHTML = await page.content()
+            console.log(typeof pageHTML)
+            // const pageHTML = await axios.get(nextURL, config);
             // adding the current webpage to the 
             // web pages already crawled 
             visitedURLs.push(nextURL);
             console.log("Visited: ", visitedURLs.length);
             // initializing cheerio on the current webpage 
-            const $ = cheerio.load(pageHTML.data);
+            const $ = cheerio.load(pageHTML);
             console.log("Shop? ", isShop($));
 
             $("a").each((i, element) => {
@@ -86,7 +98,7 @@ export async function crawl(url, maxPages = 100) {
 
 
     }
-
+    await browser.close();
     // use productURLs for scraping purposes... 
     await prisma.rootURL.createMany({
         data: [...rootURLs].map(url => ({ url: url.replace('https://', '').replace('http://', '') })),

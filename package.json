@@ -18,9 +18,11 @@
     "cheerio": "^1.0.0-rc.12",
     "electron-serve": "^1.1.0",
     "electron-store": "^8.1.0",
+    "langchain": "^0.0.64",
     "prisma": "^4.13.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.32.3",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.26",
     "autoprefixer": "^10.4.7",
