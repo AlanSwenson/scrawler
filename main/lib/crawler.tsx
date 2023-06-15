@@ -1,7 +1,7 @@
-const axios = require("axios");
-const cheerio = require("cheerio");
+import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client'
 import { chromium } from 'playwright-core';
+import chalk from 'chalk';
 
 const prisma = new PrismaClient()
 
@@ -13,26 +13,26 @@ export function getRoot(url) {
     }
 }
 
-function compareRoot(url, root) {
+function compareRoot(url: string, root: string) : boolean {
     var newRoot = getRoot(url);
-    console.log("newRoot: ", newRoot, "root: ", root);
     if (newRoot == root) return true;
+    else return false;
 }
 
-function isShop($) {
-    let shop = 'no'
+function isShop($: cheerio.CheerioAPI) : string {
+    let shop: string = 'no'
     if ($('.woocommerce').length) shop = 'woocommerce'
     return shop;
 }
 
-export async function crawl(url, maxPages = 5) {
+export async function crawl(url: string, maxPages: number = 5) : Promise<number> {
     // initialized with the first webpage to visit 
     // test url is https://scrapeme.live/shop
     if (!url) url = 'https://scrapeme.live/shop';
     if (!url.startsWith('http') && !url.startsWith('https')) url = 'https://' + url;
-    const URLsToVisit = [url];
-    const visitedURLs = [];
-    const rootURLs = new Set();
+    const URLsToVisit: string[] = [url];
+    const visitedURLs: string[] = [];
+    const rootURLs = new Set<string>();
 
     const config = {
         headers: {
@@ -53,15 +53,14 @@ export async function crawl(url, maxPages = 5) {
         visitedURLs.length < maxPages
     ) {
         // the current webpage to crawl 
-        const nextURL = URLsToVisit.pop();
-        let root = getRoot(nextURL);
-
-        rootURLs.add(root);
+        const nextURL: string = URLsToVisit.pop();
+        let root: string = getRoot(nextURL);
 
         // retrieving the HTML content from nextURL 
         try {
 
             await page.goto(nextURL)
+            rootURLs.add(root);
             const pageHTML = await page.content()
             // adding the current webpage to the 
             // web pages already crawled 
@@ -69,11 +68,14 @@ export async function crawl(url, maxPages = 5) {
             console.log("Visited: ", visitedURLs.length);
             // initializing cheerio on the current webpage 
             const $ = cheerio.load(pageHTML);
-            console.log("Shop? ", isShop($));
+            let shop: string = isShop($);
+            if (shop != 'no') shop = chalk.green(shop);
+            else shop = chalk.red(shop);
+            console.log("Shop? ", shop);
 
             $("a").each((i, element) => {
-                let href = $(element).attr("href");
-                let validURL = false
+                let href: string = $(element).attr("href");
+                let validURL: boolean = false
                 if (href && href.startsWith('http')) {
                     validURL = !(compareRoot(href, root));
                 }
@@ -83,7 +85,7 @@ export async function crawl(url, maxPages = 5) {
                     !URLsToVisit.includes(href) &&
                     !visitedURLs.includes(href)
                 ) {
-                    console.log("adding: ", href);
+                    console.log(chalk.blue("adding: ", href));
                     URLsToVisit.push(href)
                 }
 
@@ -98,10 +100,13 @@ export async function crawl(url, maxPages = 5) {
     }
     await browser.close();
     // use productURLs for scraping purposes... 
-    await prisma.rootURL.createMany({
-        data: [...rootURLs].map(url => ({ url: url.replace('https://', '').replace('http://', '') })),
+    const addedCount = await prisma.rootURL.createMany({
+        data: [...rootURLs].map(url => {
+            return ({ url: url.replace('https://', '').replace('http://', '') });
+        }),
         skipDuplicates: true,
     })
+    return addedCount.count;
 
 }
 

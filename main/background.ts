@@ -2,8 +2,11 @@ import { app, ipcMain } from 'electron';
 import serve from 'electron-serve';
 import { createWindow } from './helpers';
 import { crawl } from './lib/crawler'
+import { getAmazonProducts, requestParameters } from './lib/amz'
+import { PrismaClient } from '@prisma/client'
 
 const isProd: boolean = process.env.NODE_ENV === 'production';
+const prisma = new PrismaClient()
 
 if (isProd) {
   serve({ directory: 'app' });
@@ -33,6 +36,28 @@ app.on('window-all-closed', () => {
 });
 
 ipcMain.on('start-crawl', async (event, arg) => {
-  await crawl(arg);
-  event.sender.send('start-crawl', `"${arg}" crawl completed`);
+  const res = await crawl(arg);
+  const newUrls = await prisma.rootURL.findMany({
+    orderBy: {
+      createdAt: 'desc'
+    },
+    take: res,
+  })
+  const message = {
+    search: arg,
+    urls: newUrls,
+  }
+  console.log(message.urls)
+
+  event.sender.send('start-crawl', message);
 });
+
+ipcMain.on('start-search', async (event, arg) => {
+  const data = {
+    ...requestParameters,
+    Keywords: arg,
+  }
+  const products = await getAmazonProducts(data);
+  event.sender.send('start-search', products);
+});
+
