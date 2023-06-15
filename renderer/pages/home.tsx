@@ -2,9 +2,10 @@ import electron from 'electron';
 import React, { useState, useEffect, FC } from 'react';
 import Head from 'next/head';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faSpider, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 import localFont from '@next/font/local'
+import { Russo_One } from '@next/font/google'
 import Button from '../components/button';
 
 const championship = localFont({
@@ -13,26 +14,39 @@ const championship = localFont({
   variable: '--font-championship',
 })
 
+const russoOne = Russo_One({
+  subsets: ['latin'],
+  weight: "400",
+  variable: '--font-russo-one',
+})
+
 const ipcRenderer = electron.ipcRenderer;
+
+enum searchType {
+  crawl,
+  search
+}
 
 const Home: FC = () => {
   const [url, setUrl] = useState('');
   const [search, setSearch] = useState('');
   const [message, setMessage] = useState<JSX.Element>();
-  const [crawling, setCrawling] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [selectedType, setSelectedType] = useState<searchType>(searchType.crawl);
 
   const textFieldClass = 'focus:outline-none focus:border-purple-300 border border-mixed-500 rounded-3xl px-4 py-1 mr-4 placeholder:text-mixed-500 text-white bg-dark-200';
+  const radioClass = 'hover:bg-purple-300 ease-in transition-all hover:border-purple-300 hover:text-dark-100 py-3 mx-1 rounded-full '
+  const selected = 'text-dark-100 bg-primary-200 border-2 border-primary-200 ' + radioClass;
+  const unselected = 'text-primary-100 border-2 border-primary-100 ' + radioClass;
 
-  const crawl = (event: React.MouseEvent<HTMLDivElement, MouseEvent> | React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    event.preventDefault();
-    setCrawling(true);
-    ipcRenderer.send('start-crawl', url.toLowerCase())
-  };
   const handleSearch = (event: React.MouseEvent<HTMLDivElement, MouseEvent> | React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     event.preventDefault();
     setSearching(true);
-    ipcRenderer.send('start-search', search);
+    if (selectedType == searchType.crawl) {
+      ipcRenderer.send('start-crawl', url.toLowerCase())
+    } else if (selectedType == searchType.search) {
+      ipcRenderer.send('start-search', search);
+    }
   };
 
   useEffect(() => {
@@ -70,7 +84,7 @@ const Home: FC = () => {
     ipcRenderer.on('start-crawl', (event, data) => {
       const newMessage = createMessage(data);
       setMessage(newMessage);
-      setCrawling(false);
+      setSearching(false);
       setUrl('');
       console.log("start-crawl: ");
     });
@@ -88,26 +102,30 @@ const Home: FC = () => {
       <Head>
         <title>Scrawler by Alan</title>
       </Head>
-      <div className={`${championship.variable} w-full flex flex-col justify-start h-screen bg-dark-100`}>
+      <div className={`${championship.variable} ${russoOne.variable} w-full flex flex-col justify-start h-screen bg-dark-100`}>
         <div className='w-full text-8xl flex justify-center text-primary-200 pt-20 pb-12 font-championship uppercase align-baseline'>
         Scrawler
         </div>
         <div className='w-auto mx-auto'>
+          <div className='text-primary-200 flex justify-center w-full mb-6'>
+            <div className={`${selectedType == searchType.crawl ? selected : unselected}`} onClick={e => setSelectedType(searchType.crawl)}>
+            <FontAwesomeIcon icon={faSpider} className={`px-4`} />
+            </div>
+            <div className={`${selectedType == searchType.search ? selected : unselected}`} onClick={e => setSelectedType(searchType.search)}>
+            <FontAwesomeIcon icon={faSearch} className={`px-4`} />
+            </div>
+
+          </div>
         <div className='flex flex-col justify-center items-center w-full '>
           <form className='flex w-full'>
-              <input className={`${textFieldClass}`} type='text' placeholder='Enter URL' value={url} onChange={e => setUrl(e.target.value)} />
-              <div onClick={(event) => crawl(event)}>
-              <Button label='Crawl'  />
+              <input className={`${textFieldClass}`} type='text' placeholder={(selectedType == searchType.crawl) ? 'Enter Url' : 'Enter Product'} value={url} onChange={e => setUrl(e.target.value)} />
+              <div onClick={(event) => handleSearch(event)} className='flex'>
+              <Button label={(selectedType == searchType.crawl) ? 'Crawl' : 'Search'}  />
               </div>
           </form>
-          <form className='flex pt-2 w-full'>
-          <input className={`${textFieldClass}`} type='text' placeholder='Product Search' value={search} onChange={e => setSearch(e.target.value)} />
-              <div onClick={(event) => handleSearch(event)}>
-              <Button label='Search Amazon'  />
-              </div>
-          </form>
+
           <div className='text-white text-center my-8'>
-            {crawling ? <FontAwesomeIcon icon={faSpinner} className='animate-spin' /> : message}
+            {searching ? <FontAwesomeIcon icon={faSpinner} className='animate-spin' /> : message}
             </div>
         </div>   
         </div>

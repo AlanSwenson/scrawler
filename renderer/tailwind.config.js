@@ -7,6 +7,7 @@ module.exports = {
     extend: {
       fontFamily: {
         championship: ['var(--font-championship)'],
+        russoOne: ['var(--font-russo-one)'],
       },
       colors: {
         'dark-100': '#1c1429',
